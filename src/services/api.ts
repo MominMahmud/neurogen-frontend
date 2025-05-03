@@ -1,6 +1,6 @@
 import { EssayWithEvaluation, EssaySubmission } from '../types/essay';
 
-const API_BASE = 'http://localhost:8000/api/essays';
+const API_BASE = 'https://ielts-eval-api.onrender.com/api/essays';
 const MAX_LIMIT = 100;
 
 export async function fetchEssays(skip = 0, limit = MAX_LIMIT): Promise<EssayWithEvaluation[]> {
