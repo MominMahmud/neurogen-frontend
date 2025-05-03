@@ -13,6 +13,7 @@ import {
   Divider,
   Alert,
   useTheme,
+  Paper,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -20,37 +21,46 @@ import {
   Psychology as PsychologyIcon,
   Translate as TranslateIcon,
   AutoGraph as AutoGraphIcon,
+  Star,
+  Feedback,
+  EmojiEvents,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
-import { essayService } from '../services/api';
-import type { Essay, Evaluation } from '../types/essay';
+import { fetchEssay } from '../services/api';
+import type { EssayWithEvaluation } from '../types/essay';
+
+const scoreColors = ['#1976d2', '#43a047', '#fbc02d', '#e57373'];
+const scoreLabels = [
+  { label: 'Task Achievement', icon: <EmojiEvents /> },
+  { label: 'Coherence & Cohesion', icon: <Star /> },
+  { label: 'Lexical Resource', icon: <Star /> },
+  { label: 'Grammatical Range', icon: <Star /> },
+];
 
 const ResultPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const theme = useTheme();
   const [loading, setLoading] = useState(true);
-  const [essay, setEssay] = useState<Essay | null>(null);
+  const [essay, setEssay] = useState<EssayWithEvaluation | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchEssay = async () => {
+    const fetchData = async () => {
       try {
-        if (!id) {
-          throw new Error('No essay ID provided');
-        }
-        const data = await essayService.getEssay(id);
+        if (!id) throw new Error('No essay ID provided');
+        const data = await fetchEssay(id);
         setEssay(data);
+        console.log('ResultPage essay:', data);
       } catch (err) {
         setError('Failed to load essay results');
-        toast.error('Failed to load essay results');
+        console.error('ResultPage API error:', err);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchEssay();
+    fetchData();
   }, [id]);
 
   const fadeInUp = {
@@ -96,82 +106,6 @@ const ResultPage = () => {
 
   const { evaluation } = essay;
 
-  const ScoreCard = ({
-    title,
-    score,
-    icon,
-    color,
-  }: {
-    title: string;
-    score: number;
-    icon: React.ReactNode;
-    color: 'primary' | 'secondary' | 'info' | 'success';
-  }) => (
-    <Card
-      sx={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        p: 3,
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '4px',
-          background: `linear-gradient(90deg, ${theme.palette[color].main}, ${theme.palette[color].light})`,
-        }}
-      />
-      {icon}
-      <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
-        {title}
-      </Typography>
-      <Box
-        sx={{
-          position: 'relative',
-          display: 'inline-flex',
-          mt: 1,
-        }}
-      >
-        <CircularProgress
-          variant="determinate"
-          value={score * 10}
-          size={80}
-          thickness={4}
-          sx={{ color: theme.palette[color].main }}
-        />
-        <Box
-          sx={{
-            top: 0,
-            left: 0,
-            bottom: 0,
-            right: 0,
-            position: 'absolute',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Typography
-            variant="h4"
-            component="div"
-            color={color}
-            sx={{ fontWeight: 700 }}
-          >
-            {score}
-          </Typography>
-        </Box>
-      </Box>
-    </Card>
-  );
-
   return (
     <Container maxWidth="lg">
       <Box sx={{ py: { xs: 4, md: 6 } }}>
@@ -199,118 +133,43 @@ const ResultPage = () => {
           </Box>
 
           <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid item xs={12} md={3}>
-              <ScoreCard
-                title="Task Achievement"
-                score={evaluation.task_achievement}
-                icon={<TaskAltIcon color="primary" sx={{ fontSize: 40 }} />}
-                color="primary"
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <ScoreCard
-                title="Coherence & Cohesion"
-                score={evaluation.coherence_cohesion}
-                icon={<PsychologyIcon color="secondary" sx={{ fontSize: 40 }} />}
-                color="secondary"
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <ScoreCard
-                title="Lexical Resource"
-                score={evaluation.lexical_resource}
-                icon={<TranslateIcon color="info" sx={{ fontSize: 40 }} />}
-                color="info"
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <ScoreCard
-                title="Grammar"
-                score={evaluation.grammatical_range}
-                icon={<AutoGraphIcon color="success" sx={{ fontSize: 40 }} />}
-                color="success"
-              />
-            </Grid>
+            {[evaluation.task_achievement, evaluation.coherence_cohesion, evaluation.lexical_resource, evaluation.grammatical_range].map((score, idx) => (
+              <Grid item xs={12} sm={6} md={3} key={idx}>
+                <Card sx={{ bgcolor: scoreColors[idx], color: '#fff', textAlign: 'center', transition: 'transform 0.2s, box-shadow 0.2s', '&:hover': { boxShadow: 8, transform: 'translateY(-6px) scale(1.03)' } }}>
+                  <CardContent>
+                    {scoreLabels[idx].icon}
+                    <Typography variant="h6" sx={{ mt: 1 }}>{scoreLabels[idx].label}</Typography>
+                    <CircularProgress variant="determinate" value={score * 10} size={80} thickness={6} sx={{ color: '#fff', mt: 2 }} />
+                    <Typography variant="h4" sx={{ mt: 2 }}>{score}</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
           </Grid>
 
-          <Card sx={{ mb: 4 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Overall Score
-              </Typography>
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 2,
-                  mb: 3,
-                }}
-              >
-                <Chip
-                  label={`Band ${evaluation.overall_score}`}
-                  color="primary"
-                  size="large"
-                  sx={{
-                    fontSize: '1.5rem',
-                    height: '48px',
-                    px: 2,
-                  }}
-                />
-                <Typography variant="body1" color="text.secondary">
-                  Based on IELTS band score criteria
-                </Typography>
-              </Box>
-              <Divider sx={{ my: 3 }} />
-              <Typography variant="h6" gutterBottom>
-                Detailed Feedback
-              </Typography>
-              <Box sx={{ mt: 2 }}>
-                {evaluation.feedback.split('\n').map((paragraph, index) => {
-                  if (paragraph.startsWith('**')) {
-                    const [heading, content] = paragraph.split(':**');
-                    return (
-                      <Box key={index} sx={{ mb: 2 }}>
-                        <Typography
-                          variant="subtitle1"
-                          sx={{
-                            color: 'primary.main',
-                            fontWeight: 700,
-                            mb: 1,
-                          }}
-                        >
-                          {heading.replace('**', '')}
-                        </Typography>
-                        <Typography
-                          variant="body1"
-                          sx={{
-                            whiteSpace: 'pre-line',
-                            lineHeight: 1.8,
-                            color: 'text.secondary',
-                          }}
-                        >
-                          {content.trim()}
-                        </Typography>
-                      </Box>
-                    );
-                  }
+          <Paper elevation={3} sx={{ p: 3, mb: 4, background: 'linear-gradient(135deg, #fffde7 60%, #e3f2fd 100%)' }}>
+            <Typography variant="h5" color="secondary" gutterBottom>Overall Score</Typography>
+            <Typography variant="h2" color="primary" sx={{ fontWeight: 'bold', mb: 2 }}>{evaluation.overall_score}</Typography>
+            <Divider sx={{ mb: 2 }} />
+            <Typography variant="h6" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>Recommendations</Typography>
+            <Box sx={{ whiteSpace: 'pre-line' }}>
+              {evaluation.feedback.split(/\n+/).map((line, idx) => {
+                // Bold headings like **Task Achievement (6.5):**
+                const match = line.match(/^\*\*(.+?):?\*\*\s*(.*)$/);
+                if (match) {
                   return (
-                    <Typography
-                      key={index}
-                      variant="body1"
-                      sx={{
-                        whiteSpace: 'pre-line',
-                        lineHeight: 1.8,
-                        color: 'text.secondary',
-                        mb: 2,
-                      }}
-                    >
-                      {paragraph}
+                    <Typography key={idx} variant="subtitle1" sx={{ fontWeight: 900, color: '#1976d2', mb: 1 }}>
+                      {match[1]}{match[2] ? ': ' : ''}
+                      <span style={{ fontWeight: 400, color: '#333' }}>{match[2]}</span>
                     </Typography>
                   );
-                })}
-              </Box>
-            </CardContent>
-          </Card>
+                }
+                return (
+                  <Typography key={idx} variant="body2" sx={{ mb: 1 }}>{line}</Typography>
+                );
+              })}
+            </Box>
+          </Paper>
 
           <Card>
             <CardContent>
@@ -330,6 +189,15 @@ const ResultPage = () => {
             </CardContent>
           </Card>
         </motion.div>
+      </Box>
+      <Box sx={{ mt: 6, textAlign: 'center', color: '#888' }}>
+        <Divider sx={{ mb: 2 }} />
+        <Typography variant="body2">
+          Made by <b>Momin Mahmud Jalib</b> &nbsp;|&nbsp;
+          <a href="https://www.linkedin.com/mominmahmud" target="_blank" rel="noopener noreferrer" style={{ color: '#1976d2', textDecoration: 'underline' }}>
+            LinkedIn
+          </a>
+        </Typography>
       </Box>
     </Container>
   );

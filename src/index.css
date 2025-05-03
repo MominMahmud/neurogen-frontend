@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Josefin+Slab:wght@400;700&family=Raleway:wght@700;900&family=Six+Caps&display=swap');
+
+body {
+  margin: 0;
+  font-family: 'Josefin Slab', serif;
+  background: linear-gradient(135deg, #f7f7f7 60%, #e3f2fd 100%);
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4, h5, h6,
+.MuiTypography-h1, .MuiTypography-h2, .MuiTypography-h3, .MuiTypography-h4, .MuiTypography-h5, .MuiTypography-h6 {
+  font-family: 'Raleway', sans-serif;
+  font-weight: 700;
+}
+
+.six-caps-heading {
+  font-family: 'Six Caps', sans-serif !important;
+  letter-spacing: 0.2em;
+  font-weight: 400 !important;
+  text-transform: uppercase;
+} 

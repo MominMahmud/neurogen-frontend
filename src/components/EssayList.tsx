@@ -1,110 +1,101 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    Box, 
-    Typography, 
-    Paper, 
-    List, 
-    ListItem, 
-    ListItemText, 
-    Button,
-    CircularProgress
+import {
+  Box,
+  Typography,
+  Paper,
+  List,
+  ListItem,
+  ListItemText,
+  Avatar,
+  Chip,
+  Divider,
+  Button,
+  Alert
 } from '@mui/material';
+import { Assignment, Star, Feedback, Visibility } from '@mui/icons-material';
 import { EssayWithEvaluation } from '../types/essay';
 import { fetchEssays } from '../services/api';
-
-const ITEMS_PER_PAGE = 10;
+import { useNavigate } from 'react-router-dom';
 
 const EssayList: React.FC = () => {
-    const [essays, setEssays] = useState<EssayWithEvaluation[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [hasMore, setHasMore] = useState(true);
-    const [page, setPage] = useState(1);
+  const [essays, setEssays] = useState<EssayWithEvaluation[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-    const loadEssays = async (pageNum: number) => {
-        try {
-            setLoading(true);
-            const skip = (pageNum - 1) * ITEMS_PER_PAGE;
-            const data = await fetchEssays(skip, ITEMS_PER_PAGE);
-            
-            if (pageNum === 1) {
-                setEssays(data);
-            } else {
-                setEssays(prev => [...prev, ...data]);
-            }
-            
-            setHasMore(data.length === ITEMS_PER_PAGE);
-        } catch (error) {
-            console.error('Error loading essays:', error);
-        } finally {
-            setLoading(false);
-        }
+  useEffect(() => {
+    const loadEssays = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await fetchEssays(0, 100);
+        setEssays(data);
+        console.log('EssayList essays:', data);
+      } catch (err) {
+        setError('Failed to fetch evaluations');
+        console.error('EssayList API error:', err);
+      } finally {
+        setLoading(false);
+      }
     };
+    loadEssays();
+  }, []);
 
-    useEffect(() => {
-        loadEssays(1);
-    }, []);
+  console.log('EssayList essays:', essays);
 
-    const handleLoadMore = () => {
-        const nextPage = page + 1;
-        setPage(nextPage);
-        loadEssays(nextPage);
-    };
-
-    return (
-        <Box sx={{ mt: 4 }}>
-            <Typography variant="h4" gutterBottom>
-                Your Essays
-            </Typography>
-            <List>
-                {essays.map((essay) => (
-                    <Paper 
-                        key={essay.id} 
-                        elevation={2} 
-                        sx={{ mb: 2, p: 2 }}
-                    >
-                        <ListItem>
-                            <ListItemText
-                                primary={essay.prompt}
-                                secondary={
-                                    <Box>
-                                        <Typography variant="body2" color="text.secondary">
-                                            {essay.content.substring(0, 200)}...
-                                        </Typography>
-                                        {essay.evaluation && (
-                                            <Box sx={{ mt: 1 }}>
-                                                <Typography variant="subtitle2">
-                                                    Score: {essay.evaluation.overall_score}
-                                                </Typography>
-                                                <Typography variant="body2">
-                                                    {essay.evaluation.feedback}
-                                                </Typography>
-                                            </Box>
-                                        )}
-                                    </Box>
-                                }
-                            />
-                        </ListItem>
-                    </Paper>
-                ))}
-            </List>
-            {hasMore && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-                    <Button
-                        variant="contained"
-                        onClick={handleLoadMore}
-                        disabled={loading}
-                        sx={{ minWidth: 200 }}
-                    >
-                        {loading ? (
-                            <CircularProgress size={24} color="inherit" />
-                        ) : (
-                            'Load More'
-                        )}
-                    </Button>
-                </Box>
-            )}
-        </Box>
-    );
+  return (
+    <Box sx={{ mt: 4 }}>
+      <Typography variant="h4" gutterBottom>
+        Your Evaluations
+      </Typography>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <List sx={{ bgcolor: '#f9f9fb', borderRadius: 2 }}>
+        {essays.map((essay, idx) => (
+          <React.Fragment key={essay.id}>
+            <Paper elevation={3} sx={{ mb: 2, p: 2, background: idx % 2 === 0 ? '#e3f2fd' : '#fffde7', transition: 'transform 0.2s, box-shadow 0.2s', '&:hover': { boxShadow: 8, transform: 'translateY(-6px) scale(1.03)' } }}>
+              <ListItem alignItems="flex-start" secondaryAction={
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  startIcon={<Visibility />}
+                  onClick={() => navigate(`/result/${essay.id}`)}
+                  sx={{ fontWeight: 'bold' }}
+                >
+                  View Result
+                </Button>
+              }>
+                <Avatar sx={{ bgcolor: '#1976d2', mr: 2 }}>
+                  <Assignment />
+                </Avatar>
+                <ListItemText
+                  primary={<Typography variant="h6" sx={{ maxWidth: 320, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{essay.prompt}</Typography>}
+                  secondary={
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, maxWidth: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {essay.content}
+                      </Typography>
+                      {essay.evaluation && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                          <Chip icon={<Star sx={{ color: '#ffd600' }} />} label={`Score: ${essay.evaluation.overall_score}`} color="primary" sx={{ fontWeight: 'bold', bgcolor: '#fffde7', color: '#1976d2' }} />
+                          <Chip icon={<Feedback sx={{ color: '#43a047' }} />} label={essay.evaluation.feedback.substring(0, 40) + '...'} color="success" />
+                        </Box>
+                      )}
+                    </Box>
+                  }
+                />
+              </ListItem>
+            </Paper>
+            <Divider variant="middle" />
+          </React.Fragment>
+        ))}
+        {!loading && essays.length === 0 && !error && (
+          <Typography variant="body2" color="text.secondary" sx={{ p: 2, textAlign: 'center' }}>
+            Your evaluations will appear here once you submit essays.
+          </Typography>
+        )}
+      </List>
+    </Box>
+  );
 };
 
 export default EssayList; 
